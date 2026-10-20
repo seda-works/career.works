@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { careerOpsRoot, readApplications } from "@/lib/career-ops";
+import { careerOpsRoot, readApplications, readInbox } from "@/lib/career-ops";
 import { getNormalizeTextKey } from "@/lib/core/text-key";
 import { evaluatedKeys, isEvaluated } from "@/lib/whats-new-suppression.mjs";
 import type { DiscoveredOffer } from "@/lib/explore";
@@ -56,10 +56,16 @@ export async function GET(req: Request) {
   const normalizeTextKey = await getNormalizeTextKey();
   const evaluated = evaluatedKeys(readApplications(), normalizeTextKey);
 
+  // Local override (cvjobsearch): inbox ✕ marks the pipeline.md row `[x]` but never
+  // touches scan-history, so skipped postings kept resurfacing here. Hide any URL
+  // that is done in the pipeline; Restore flips it back and it reappears.
+  const doneInPipeline = new Set(readInbox().filter((j) => j.done).map((j) => j.url));
+
   const toOffer = (c: string[]): DiscoveredOffer | null => {
     const [url, firstSeen, portal, title, company, status, location] = c;
     if (!url || !/^https?:\/\//i.test(url)) return null;
     if (status && /skipped|expired/i.test(status)) return null;
+    if (doneInPipeline.has(url)) return null;
     if (isEvaluated(evaluated, normalizeTextKey, company, title)) return null;
     return {
       url,

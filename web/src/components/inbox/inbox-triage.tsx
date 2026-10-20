@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Undo2 } from "lucide-react";
+import { Undo2, Zap } from "lucide-react";
 import { useJobs } from "@/components/jobs/job-store";
 import type { InboxJob } from "@/lib/career-ops";
 import type { AtsSource } from "@/lib/explore";
@@ -11,6 +11,7 @@ import { daysSince, seniorityFromTitle, sourceFromUrl, SENIORITY_ORDER, type Sen
 import { FacetChips } from "./facet-chips";
 import { TriageRow, type RowScore } from "./triage-row";
 import { ShortlistTray, type ShortItem } from "./shortlist-tray";
+import { compareInboxRows } from "@/lib/triage-table.mjs";
 import { cn } from "@/lib/cn";
 import { estimateRunCost } from "@/lib/run-cost-estimate.mjs";
 import { createInboxSkipActions, queueInboxSkip } from "@/lib/inbox-skip-client.mjs";
@@ -149,10 +150,14 @@ export function InboxTriage({ inbox }: { inbox: InboxJob[] }) {
     [enriched, hidden, within, sources, seniorities, locQ, kw],
   );
 
-  // 🔴 SINGLE ORDER PLUG POINT — freshness only (newest first_seen first; unknown last).
-  // A smarter ranker replaces ONLY this comparator; facets/triage/shortlist/score never
+  // 🔴 SINGLE ORDER PLUG POINT — local override (cvjobsearch): quick-scored postings
+  // first by triage score, then freshness (newest first_seen first; unknown last).
+  // The comparator lives in triage-table.mjs (tested); facets/shortlist/score never
   // touch relevance. This is the whole firewall in one line.
-  const ordered = useMemo(() => [...filtered].sort((a, b) => (a.age ?? Infinity) - (b.age ?? Infinity)), [filtered]);
+  const ordered = useMemo(
+    () => [...filtered].sort((a, b) => compareInboxRows({ quick: a.job.quick, age: a.age }, { quick: b.job.quick, age: b.age })),
+    [filtered],
+  );
 
   const anyFacet = within != null || sources.size > 0 || seniorities.size > 0 || locQ.trim() !== "" || kw.trim() !== "";
   const capped = !showAll && !anyFacet;
@@ -237,6 +242,59 @@ export function InboxTriage({ inbox }: { inbox: InboxJob[] }) {
     return estimateRunCost(jobs, "evaluate", shortlist.length);
   }, [jobs, shortlist.length]);
 
+  // ── Quick score (triage) — local addition (cvjobsearch) ──────────────────────
+  // POST /api/triage per posting, at most QUICK_CONCURRENCY at once so a bulk run
+  // doesn't flood the user's Claude usage. Each finished score refreshes the page
+  // data, so its badge appears (and the row re-sorts) without a reload.
+  const QUICK_CONCURRENCY = 3;
+  const [quickRunning, setQuickRunning] = useState<Set<string>>(() => new Set());
+  const [quickErrors, setQuickErrors] = useState<Record<string, string>>({});
+  const [confirmBulkQuick, setConfirmBulkQuick] = useState(false);
+  const quickQueue = useRef<string[]>([]);
+  const quickActive = useRef(0);
+  const pumpQuick = useRef<() => void>(() => {});
+  pumpQuick.current = () => {
+    while (quickActive.current < QUICK_CONCURRENCY && quickQueue.current.length > 0) {
+      const url = quickQueue.current.shift()!;
+      quickActive.current++;
+      void (async () => {
+        try {
+          const res = await fetch("/api/triage", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url }),
+          });
+          const data = (await res.json().catch(() => ({}))) as { error?: string };
+          if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+          setQuickErrors((e) => {
+            const n = { ...e };
+            delete n[url];
+            return n;
+          });
+          router.refresh();
+        } catch (err) {
+          setQuickErrors((e) => ({ ...e, [url]: err instanceof Error ? err.message : "Quick score failed" }));
+        } finally {
+          quickActive.current--;
+          setQuickRunning((s) => {
+            const n = new Set(s);
+            n.delete(url);
+            return n;
+          });
+          pumpQuick.current();
+        }
+      })();
+    }
+  };
+  const quickScore = (urls: string[]) => {
+    const fresh = urls.filter((u) => !quickRunning.has(u) && !quickQueue.current.includes(u));
+    if (fresh.length === 0) return;
+    quickQueue.current.push(...fresh);
+    setQuickRunning((s) => new Set([...s, ...fresh]));
+    pumpQuick.current();
+  };
+  const unscoredUrls = ordered.filter((e) => !e.job.quick && !quickRunning.has(e.job.url)).map((e) => e.job.url);
+
   const scoreShortlist = () => {
     const batchId = `shortlist-${Date.now()}`;
     for (const it of shortlist) {
@@ -274,11 +332,41 @@ export function InboxTriage({ inbox }: { inbox: InboxJob[] }) {
         <p className="text-sm font-medium text-foreground">
           {capped ? "Fresh — worth a look" : anyFacet ? `${filtered.length} match${filtered.length === 1 ? "" : "es"}` : "All roles"}
         </p>
-        {hiddenCount > 0 && (
-          <button type="button" onClick={() => void restoreHidden()} disabled={restoring} aria-busy={restoring} className="text-xs text-faint transition-colors hover:text-foreground disabled:opacity-50 max-sm:min-h-[44px]">
-            {hiddenCount} hidden · {restoring ? "restoring…" : "restore"}
-          </button>
-        )}
+        <div className="flex flex-wrap items-baseline justify-end gap-x-3 gap-y-1">
+          {quickRunning.size > 0 && (
+            <span className="text-xs text-brand tabular-nums">{quickRunning.size} quick scoring…</span>
+          )}
+          {unscoredUrls.length > 0 &&
+            (confirmBulkQuick ? (
+              <span className="inline-flex items-baseline gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => { quickScore(unscoredUrls); setConfirmBulkQuick(false); }}
+                  className="rounded-md bg-brand px-2 py-1 font-medium text-brand-foreground max-sm:min-h-[44px]"
+                >
+                  Quick score {unscoredUrls.length} now
+                </button>
+                <span className="text-faint">~{unscoredUrls.length * 25}k tokens · uses your Claude plan</span>
+                <button type="button" onClick={() => setConfirmBulkQuick(false)} className="text-faint hover:text-foreground">
+                  Cancel
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmBulkQuick(true)}
+                className="inline-flex items-center gap-1 text-xs text-muted transition-colors hover:text-brand max-sm:min-h-[44px]"
+                title="Run the fast first-pass triage on every posting that has no quick score yet"
+              >
+                <Zap className="size-3.5" /> Quick score {unscoredUrls.length} unscored
+              </button>
+            ))}
+          {hiddenCount > 0 && (
+            <button type="button" onClick={() => void restoreHidden()} disabled={restoring} aria-busy={restoring} className="text-xs text-faint transition-colors hover:text-foreground disabled:opacity-50 max-sm:min-h-[44px]">
+              {hiddenCount} hidden · {restoring ? "restoring…" : "restore"}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* multi-select action bar */}
@@ -287,6 +375,13 @@ export function InboxTriage({ inbox }: { inbox: InboxJob[] }) {
           <span className="font-medium text-brand tabular-nums">{selected.size} selected</span>
           <button type="button" onClick={saveSelected} className="rounded-md bg-brand px-2.5 py-1 text-xs font-medium text-brand-foreground max-sm:min-h-[44px]">
             Save to shortlist
+          </button>
+          <button
+            type="button"
+            onClick={() => { quickScore([...selected]); setSelected(new Set()); }}
+            className="inline-flex items-center gap-1 rounded-md border border-brand/40 px-2.5 py-1 text-xs font-medium text-brand max-sm:min-h-[44px]"
+          >
+            <Zap className="size-3.5" /> Quick score
           </button>
           <button type="button" onClick={() => setSelected(new Set())} className="text-xs text-muted hover:text-foreground max-sm:min-h-[44px]">
             Clear
@@ -308,6 +403,9 @@ export function InboxTriage({ inbox }: { inbox: InboxJob[] }) {
               onToggleSelect={() => toggleSelect(e.job.url)}
               onSave={() => save(e.job)}
               onSkip={() => skip(e.job)}
+              quickRunning={quickRunning.has(e.job.url)}
+              quickError={quickErrors[e.job.url]}
+              onQuick={() => quickScore([e.job.url])}
             />
           ))}
         </ul>

@@ -437,11 +437,14 @@ export function newCompletedReportNum(beforeEntries, afterEntries) {
 // 285s evaluate floor killed real evaluations mid-run — ~25 Bash calls plus web
 // searches routinely run longer — and the kill then misreported as "didn't save
 // a report" (#3124).
-export const RUN_MAX_DURATION_S = 800;
+// Local override (cvjobsearch): full oferta evaluations here take 20-40 min, so the
+// 800s budget killed them mid-report. Raised to 50 min; pdf keeps its 600s budget.
+export const RUN_MAX_DURATION_S = 3000;
 export function killMsForKind(kind) {
   if (kind === "pdf") return 600_000;
-  if (kind === "evaluate") return 740_000;
-  return 780_000;
+  // Local override: same split as upstream, scaled to the 3000s budget.
+  if (kind === "evaluate") return 2_880_000;
+  return 2_980_000;
 }
 
 // Message for a run the route stopped at its own time limit. It names the limit,

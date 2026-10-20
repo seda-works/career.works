@@ -11,6 +11,8 @@ import { CANONICAL_STATES, canonStatus, scoreNum, scoreTone } from "@/lib/format
 import { StatusSelect } from "@/components/status-select";
 import { applicationKey, applySavedStatus, saveStatuses } from "@/lib/pipeline-status.mjs";
 import { InboxTriage } from "@/components/inbox/inbox-triage";
+import { SkippedInbox } from "@/components/inbox/skipped-inbox";
+import { AddJobLink } from "@/components/inbox/add-job-link";
 import { cn } from "@/lib/cn";
 import { companyPresentation, companySearchText } from "@/lib/company-presentation.mjs";
 import { PipelineTableRowsSkeleton } from "@/components/page-loading-skeletons";
@@ -127,6 +129,27 @@ export function PipelineView({
     return out;
   }, [inbox]);
 
+  // Rows the user hid with ✕: done in pipeline.md but never carried onto the
+  // tracker (evaluated postings are also `[x]`, and live in the tracker tabs).
+  const skippedInbox = useMemo(() => {
+    const key = (company: string, role: string) => `${company}|${role}`.toLowerCase().replace(/\s+/g, " ").trim();
+    const tracked = new Set(applications.map((a) => key(a.company, a.role)));
+    const pendingUrls = new Set(pendingInbox.map((j) => j.url));
+    const seen = new Set<string>();
+    const out: InboxJob[] = [];
+    for (const j of inbox) {
+      if (!j.done || seen.has(j.url) || pendingUrls.has(j.url) || tracked.has(key(j.company, j.role))) continue;
+      seen.add(j.url);
+      out.push(j);
+    }
+    return out;
+  }, [inbox, pendingInbox, applications]);
+  // The SKIP tab lists them next to tracker SKIP rows, honouring the same search.
+  const skippedShown = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return needle ? skippedInbox.filter((j) => `${j.company} ${j.role}`.toLowerCase().includes(needle)) : skippedInbox;
+  }, [skippedInbox, q]);
+
   const filtered = useMemo(() => {
     if (tab === "INBOX") return [];
     let rows = visibleApplications;
@@ -210,7 +233,8 @@ export function PipelineView({
               ? pendingInbox.length
               : t === "ALL"
                 ? visibleApplications.length
-                : visibleApplications.filter((r) => canonStatus(r.status).includes(t)).length;
+                : visibleApplications.filter((r) => canonStatus(r.status).includes(t)).length
+                  + (t === "SKIP" ? skippedInbox.length : 0);
           return (
             <button
               key={t}
@@ -289,15 +313,20 @@ export function PipelineView({
       {visibleTab === "INBOX" ? (
         /* ── Inbox: the triage surface (Abundance → Triage → Shortlist → Score) ── */
         <>
+          <AddJobLink />
           <InboxTriage inbox={pendingInbox} />
           {pendingInbox.length === 0 && <InboxEmpty tracked={visibleApplications.length} />}
         </>
+      ) : visibleTab === "SKIP" && !isPending && filtered.length === 0 && skippedShown.length > 0 ? (
+        <SkippedInbox items={skippedShown} />
       ) : isPending || filtered.length > 0 ? (
-        /* ── Tracker table ──
+        <>
+        {visibleTab === "SKIP" && !isPending && <SkippedInbox items={skippedShown} />}
+        {/* ── Tracker table ──
            overflow-x-auto, not overflow-hidden: the rounded corners still clip,
            but a table too wide for the viewport can now be scrolled to instead
            of being silently cut off. min-w keeps the columns readable rather
-           than letting w-full crush them on a phone. */
+           than letting w-full crush them on a phone. */}
         <div className="mt-4 overflow-x-auto rounded-2xl border border-border">
           <table className="w-full min-w-[44rem] text-sm">
             <thead className="bg-surface/60 text-left text-xs uppercase tracking-wide text-faint">
@@ -413,6 +442,7 @@ export function PipelineView({
             )}
           </table>
         </div>
+        </>
       ) : (
         <div className="mt-4 rounded-2xl border border-dashed border-border bg-surface/30 px-6 py-12 text-center">
           <p className="font-display text-lg">No matches</p>

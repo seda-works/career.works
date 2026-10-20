@@ -13,6 +13,7 @@ import { parseInbox, splitLines } from "@/lib/pipeline-table.mjs";
 // One definition of the `{n}-RESERVED.md` convention, shared with
 // run-cli-support.mjs — see report-files.mjs for why it lives there.
 import { isReservedReportFile } from "@/lib/report-files.mjs";
+import { parseTriageTsv } from "@/lib/triage-table.mjs";
 import { resolvePdfIndexPath } from "@/lib/core/pdf-index";
 // Pure parser, no I/O — shared with the apply flow's CV resolver so the two
 // don't drift into two different definitions of "which report does this
@@ -96,7 +97,26 @@ function read(rel: string): string | null {
   }
 }
 
-export type InboxJob = { url: string; company: string; role: string; location?: string; compensation?: string; done: boolean; postedAt?: string };
+export type InboxJob = { url: string; company: string; role: string; location?: string; compensation?: string; done: boolean; postedAt?: string; quick?: QuickScore };
+
+/** A first-pass triage verdict (modes/triage.md) for one posting. */
+export type QuickScore = {
+  verdict: "PASS" | "MARGINAL" | "FAIL" | "SKIP";
+  score: number | null;
+  reason: string;
+  date: string;
+  model: string;
+};
+
+/**
+ * Read data/triage.tsv → Map<url, QuickScore>. Local addition (cvjobsearch):
+ * triage writes no files by design, so quick-score results are appended there by
+ * whoever runs them. Parsing lives in triage-table.mjs (tested). A missing file is
+ * an empty map — the file is a derived index, like scan-history's dates.
+ */
+export function readTriage(): Map<string, QuickScore> {
+  return parseTriageTsv(read("data/triage.tsv")) as Map<string, QuickScore>;
+}
 
 /** Parse data/pipeline.md. The row grammar and its labeled-segment handling
  *  live in pipeline-table.mjs — see there for the column rules (#1015, #1017). */
@@ -327,12 +347,13 @@ export type PipelineSummary = {
 export function pipelineSummary(): PipelineSummary {
   const root = careerOpsRoot();
   const scanDates = readScanDates();
+  const triage = readTriage();
   return {
     root,
     rootExists: fs.existsSync(root),
     // join the freshness date (first_seen) onto each raw posting — the inbox's
     // triage view orders/faceted-filters on it entirely client-side.
-    inbox: readInbox().map((j) => ({ ...j, postedAt: j.postedAt ?? scanDates.get(j.url) })),
+    inbox: readInbox().map((j) => ({ ...j, postedAt: j.postedAt ?? scanDates.get(j.url), quick: triage.get(j.url) })),
     applications: readApplications(),
   };
 }

@@ -59,6 +59,18 @@ export function ExplorerView({
     }
   }, []);
 
+  // True when the tab's saved Explore results are the zero-token "fresh" list
+  // (every offer came from /api/whats-new), which is cheap to rebuild.
+  const restoredSnapshotIsFresh = () => {
+    try {
+      const snap = JSON.parse(sessionStorage.getItem("career-ops:explore-results") || "null") as { offers?: { source?: string }[] } | null;
+      const offers = snap?.offers;
+      return Array.isArray(offers) && offers.length > 0 && offers.every((o) => o?.source === "whats-new");
+    } catch {
+      return false;
+    }
+  };
+
   // Initialize once from the URL (shareable search) or the server seed — without
   // clobbering anything the assistant set before this mount.
   useEffect(() => {
@@ -85,6 +97,12 @@ export function ExplorerView({
       if (sp.get("run") === "1") {
         setFirstRun(true);
         void discover();
+      } else if (!sp.toString() && restoredSnapshotIsFresh()) {
+        // Local override (cvjobsearch): a bare /explore rehydrated a stale "fresh"
+        // list from sessionStorage (e.g. 94 while the inbox said 51). That list is
+        // free to rebuild, so reload it; scan / AI results still rehydrate as before.
+        setMode("scan");
+        void loadFresh();
       }
     }
   }, [seed.filters, initFilters, setMode, setAiIntent, discover, loadFresh]);
