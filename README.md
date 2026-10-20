@@ -24,7 +24,7 @@ profile and pipeline stay in gitignored files, so a fresh clone starts empty.
 ### Install
 
 ```bash
-git clone https://github.com/emreaky/career.works.git career-works
+git clone https://github.com/seda-works/career.works.git career-works
 cd career-works && npm install
 npx playwright install chromium   # only needed for PDF generation
 claude                            # or another AI CLI: setup starts by chatting
