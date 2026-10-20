@@ -4,9 +4,12 @@ import { readFileSync } from "node:fs";
 
 const fontsSource = readFileSync(new URL("../../src/lib/fonts.ts", import.meta.url), "utf8");
 const assets = [
-  "../../src/assets/fonts/inter/Inter-Latin-Variable.woff2",
-  "../../src/assets/fonts/instrument-serif/InstrumentSerif-Latin-Regular.woff2",
-  "../../src/assets/fonts/instrument-serif/InstrumentSerif-Latin-Italic.woff2",
+  "../../src/assets/fonts/geist/Geist-latin-wght.woff2",
+  "../../src/assets/fonts/geist/Geist-latin-ext-wght.woff2",
+  "../../src/assets/fonts/bricolage/Bricolage-latin-wght.woff2",
+  "../../src/assets/fonts/bricolage/Bricolage-latin-ext-wght.woff2",
+  "../../src/assets/fonts/geist-mono/GeistMono-latin-wght.woff2",
+  "../../src/assets/fonts/geist-mono/GeistMono-latin-ext-wght.woff2",
 ];
 
 test("web fonts are local and never use the Google build-time loader", () => {
@@ -24,10 +27,11 @@ test("every configured WOFF2 asset is vendored", () => {
   }
 });
 
-test("both vendored font families include their OFL license", () => {
+test("every vendored font family includes its OFL license", () => {
   for (const relativePath of [
-    "../../src/assets/fonts/inter/OFL.txt",
-    "../../src/assets/fonts/instrument-serif/OFL.txt",
+    "../../src/assets/fonts/geist/OFL.txt",
+    "../../src/assets/fonts/bricolage/OFL.txt",
+    "../../src/assets/fonts/geist-mono/OFL.txt",
   ]) {
     assert.match(readFileSync(new URL(relativePath, import.meta.url), "utf8"), /SIL OPEN FONT LICENSE Version 1\.1/);
   }

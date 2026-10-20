@@ -5,8 +5,8 @@
 export const THEME_STORAGE_KEY = "career-ops:theme";
 
 export const THEME_COLORS = Object.freeze({
-  light: "#f7f6f3",
-  dark: "#0a0a0a",
+  light: "#fffcf4",
+  dark: "#171c1f",
 });
 
 /** @param {unknown} value */

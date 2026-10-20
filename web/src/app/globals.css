@@ -2,23 +2,28 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Design tokens — inherited from career-ops-docs. Brand burnt-orange #dd7627
-   (mode-invariant), zinc neutrals, light + dark (Fumadocs neutral values).
+   Design tokens — Career.works, a sibling of seda.works. Raspberry brand
+   #cc3366 (mode-invariant accent), sun-yellow highlight #ffd957, warm cream
+   paper and slate ink neutrals, light + dark.
    ────────────────────────────────────────────────────────────────────────── */
 @theme {
-  --color-brand: hsl(26 73% 51%);
-  --color-brand-200: hsl(33 100% 60%); /* hover / lighter */
-  /* Near-black on the brand orange: 5.2:1 on brand, 8.3:1 on brand-200 hover
-     (white was 3.14:1, an AA fail in BOTH themes since the button is the same).
-     The brand orange itself is untouched — only what sits on top of it. */
-  --color-brand-foreground: hsl(24 30% 12%);
-  --color-brand-soft: hsl(26 73% 51% / 0.12);
-  --color-brand-secondary: #fc7744;
+  --color-brand: #cc3366;
+  --color-brand-200: #b02a55; /* hover — deeper raspberry */
+  /* White on raspberry: 4.9:1 on brand, 6.3:1 on the hover shade (AA both). */
+  --color-brand-foreground: #ffffff;
+  --color-brand-soft: rgb(204 51 102 / 0.1);
+  --color-brand-secondary: #ffd957;
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
-  --font-display: var(--font-instrument-serif), ui-serif, Georgia, serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  /* seda.works signature palette */
+  --color-sun: #ffd957; /* marker highlight, logo tile */
+  --color-sun-soft: #fff3c4;
+  --color-ink: #262e33; /* text that sits on sun, in both themes */
+  --color-blush: #fbe9e5;
+
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-bricolage), "Helvetica Neue", ui-sans-serif, sans-serif;
+  --font-display: var(--font-bricolage), "Helvetica Neue", ui-sans-serif, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
 }
 
 /* Semantic surfaces reference runtime vars so they swap with the theme class. */
@@ -30,42 +35,49 @@
   --color-foreground: var(--fg);
   --color-muted: var(--muted);
   --color-faint: var(--faint);
-  --color-landing: var(--landing); /* editorial olive (light) / cream (dark) — docs landing-foreground */
-  /* Brand as SMALL TEXT: the raw orange only passes AA in dark (4.95); in light
-     it's 2.6-3.1 on cream/white. brand-text darkens it for light and keeps the
-     raw brand in dark. Use for small text/badges; brand stays for accents,
-     surfaces, icons and large headings (≥24px passes at 3:1). */
+  --color-landing: var(--landing); /* editorial headline ink */
+  /* Brand as SMALL TEXT: raw raspberry is 4.4:1 on cream, just under AA, so
+     light mode uses the deeper shade; dark mode uses a lifted pink. */
   --color-brand-text: var(--brand-text);
 }
 
 :root {
-  --bg: #f7f6f3; /* warm off-white (docs stone tone) */
+  --bg: #fffcf4; /* seda.works cream paper */
   --surface: #ffffff;
-  --surface-hover: #efeeea;
-  --border: hsl(40 9% 86%);
-  --fg: hsl(30 10% 11%); /* warm near-black, high legibility */
-  --muted: hsl(35 9% 34%); /* darker than before for readable body text */
-  --faint: hsl(35 7% 42%); /* AA: ~4.6:1 on #fff (was 50% ≈ 3.9:1, failed small text) */
-  --landing: #59592a; /* olive editorial headline */
-  --brand-text: hsl(26 80% 36%); /* darkened brand for small text: 5.5 white / 5.1 cream / 4.7 surface-hover */
-  --dot: 40 8% 42% / 0.09;
-  --pre-bg: #f2f1ed;
+  --surface-hover: #f6f1e4;
+  --border: #eee9dc;
+  --fg: #262e33; /* slate ink */
+  --muted: #5b6670;
+  --faint: #6a747c; /* AA: ~4.7:1 on #fff */
+  --landing: #262e33;
+  --brand-text: #b02a55; /* 6.3:1 on white, 6.0:1 on cream */
+  --dot: 40 25% 40% / 0.08;
+  --pre-bg: #f8f4ea;
   color-scheme: light;
 }
 
 .dark {
-  --bg: #0a0a0a;
-  --surface: #161616;
-  --surface-hover: #232323;
-  --border: #262626;
-  --fg: #fafafa;
-  --muted: #a1a1aa;
-  --faint: #8b8b95; /* AA: ~4.6:1 on #161616 (was #71717a ≈ 3.7:1, failed small text) */
-  --landing: #e4e2d0; /* cream editorial headline */
-  --brand-text: hsl(26 73% 51%); /* raw brand already passes in dark (≥4.95 on bg/surface) */
-  --dot: 240 5% 65% / 0.10;
-  --pre-bg: #111111;
+  --bg: #171c1f;
+  --surface: #20272b;
+  --surface-hover: #2a3237;
+  --border: #323b41;
+  --fg: #fffcf4;
+  --muted: #b4bcc2;
+  --faint: #929ba2; /* AA: ~4.9:1 on #20272b */
+  --landing: #fffcf4;
+  --brand-text: #f27ba2; /* lifted raspberry: ≥5.5:1 on bg/surface */
+  --dot: 200 10% 70% / 0.08;
+  --pre-bg: #13181b;
   color-scheme: dark;
+}
+
+/* Bricolage reads as a display face only when it is heavy, as on seda.works.
+   Base layer, so an explicit font-* weight utility still wins. */
+@layer base {
+  .font-display {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
 }
 
 body {
@@ -80,8 +92,17 @@ html {
 
 @layer utilities {
   .font-serif-italic {
-    font-family: var(--font-instrument-serif-italic), var(--font-serif);
-    font-style: italic;
+    font-family: var(--font-display);
+    font-style: normal;
+  }
+  /* seda.works marker highlight — sun-yellow block behind a key word/number. */
+  .mark-sun {
+    background: var(--color-sun);
+    color: var(--color-ink);
+    border-radius: 0.3em;
+    padding: 0 0.18em;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
   }
   /* Ambient dot grid — adapts to the theme via --dot. Pure CSS, 0 DOM. */
   .dot-bg {

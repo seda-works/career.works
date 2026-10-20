@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, CircleHelp, Sparkles, ArrowRight } from "lucide-react";
-import { instrumentSerif } from "@/lib/fonts";
 import { HeroGlow } from "@/components/hero-glow";
 import type { Application, InboxJob } from "@/lib/career-ops";
 import type { DiscoveredOffer } from "@/lib/explore";
@@ -149,7 +148,7 @@ export function TodayDashboard({
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted">
             <span className="text-faint">//</span> today · <span className="tabular-nums">{dateLabel}</span>
           </p>
-          <h1 className={`${instrumentSerif.className} mt-3 text-4xl leading-[1.05] text-landing md:text-5xl`}>
+          <h1 className={`font-display mt-3 text-4xl leading-[1.05] text-landing md:text-5xl`}>
             {heroState === "loading" ? (
               <>Your career queue is loading.</>
             ) : heroState === "unavailable" ? (
@@ -160,13 +159,13 @@ export function TodayDashboard({
               <>
                 {shown.newThisWeek > 0 && (
                   <>
-                    <span className="text-brand tabular-nums">{shown.newThisWeek}</span> new match{shown.newThisWeek === 1 ? "" : "es"} this week
+                    <span className="mark-sun tabular-nums">{shown.newThisWeek}</span> new match{shown.newThisWeek === 1 ? "" : "es"} this week
                   </>
                 )}
                 {shown.newThisWeek > 0 && shown.overdue > 0 && <span className="text-faint"> · </span>}
                 {shown.overdue > 0 && (
                   <>
-                    <span className="text-brand tabular-nums">{shown.overdue}</span> follow-up{shown.overdue === 1 ? "" : "s"} due
+                    <span className="mark-sun tabular-nums">{shown.overdue}</span> follow-up{shown.overdue === 1 ? "" : "s"} due
                   </>
                 )}
                 {/* queue-partial with work known only from the server snapshot:

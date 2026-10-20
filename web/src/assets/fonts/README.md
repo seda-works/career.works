@@ -1,14 +1,17 @@
 # Vendored web fonts
 
-The web app vendors only the latin files it uses so `next build` does not make
-network requests to Google Fonts.
+The web app vendors only the latin and latin-ext files it uses (latin-ext
+carries Turkish ı ş ğ İ) so `next build` does not make network requests to a
+font CDN. The families match seda.works.
 
-- Inter variable normal: `@fontsource-variable/inter@5.2.8`
-- Instrument Serif 400 normal and italic: `@fontsource/instrument-serif@5.2.8`
+- Geist variable normal: `@fontsource-variable/geist@5.3.0`
+- Bricolage Grotesque variable normal: `@fontsource-variable/bricolage-grotesque@5.3.0`
+- Geist Mono variable normal: `@fontsource-variable/geist-mono@5.3.0`
 
-Both packages publish the Google Fonts binaries under the SIL Open Font
+All packages publish the Google Fonts binaries under the SIL Open Font
 License 1.1. Each family directory includes the corresponding `OFL.txt` from
 that package. Source packages:
 
-- https://www.npmjs.com/package/@fontsource-variable/inter/v/5.2.8
-- https://www.npmjs.com/package/@fontsource/instrument-serif/v/5.2.8
+- https://www.npmjs.com/package/@fontsource-variable/geist/v/5.3.0
+- https://www.npmjs.com/package/@fontsource-variable/bricolage-grotesque/v/5.3.0
+- https://www.npmjs.com/package/@fontsource-variable/geist-mono/v/5.3.0
