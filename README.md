@@ -1,3 +1,47 @@
+# Career.works
+
+**Career.works** is a fork of [career-ops](https://github.com/career-ops-hq/career-ops)
+by Santiago Fernández de Valderrama ([santifer](https://santifer.io)): a local-first,
+AI-assisted job search workspace that evaluates offers, tailors CVs, scans job
+portals and tracks applications. Everything runs on your own machine, and your CV,
+profile and pipeline stay in gitignored files, so a fresh clone starts empty.
+
+> **Not affiliated with career-ops.** Career.works is an independent fork, not
+> the official project and not endorsed by its maintainers. "career-ops" is a
+> trademark of Santiago Fernández de Valderrama ([TRADEMARK.md](TRADEMARK.md));
+> the code is MIT-licensed ([LICENSE](LICENSE)).
+
+### What this fork adds
+
+- **Career.works web UI**: a redesigned dashboard in the [seda.works](https://seda.works)
+  palette and type (raspberry, sun-yellow, cream; Bricolage Grotesque + Geist),
+  light and dark.
+- **Add a job by link** from the Pipeline inbox, a **triage table** and a
+  **skipped inbox** to review and restore skipped postings.
+- A local **Takeda** careers parser (`scripts/parsers/`) and an optional
+  always-on web service script (`scripts/service/`).
+
+### Install
+
+```bash
+git clone https://github.com/emreaky/career.works.git career-works
+cd career-works && npm install
+npx playwright install chromium   # only needed for PDF generation
+claude                            # or another AI CLI: setup starts by chatting
+```
+
+Web dashboard (Node 22.6+):
+
+```bash
+cd web && npm ci && npm run dev   # then open http://localhost:3000
+```
+
+Everything below is the upstream career-ops README, kept for its full
+documentation. Where it says `career-ops-hq/career-ops` or `npx @santifer/career-ops init`,
+that installs upstream career-ops, not this fork.
+
+---
+
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/wordmark-dark.svg"><img src="docs/wordmark-light.svg" alt="career-ops" width="250" height="56"></picture></p>
 
 <p align="center">The open-source AI job search agent.</p>
